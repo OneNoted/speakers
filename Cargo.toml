@@ -1,0 +1,25 @@
+[workspace]
+members = [
+  "crates/speake-rs-core",
+  "crates/speake-rs-daemon",
+  "crates/speake-rs-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://example.invalid/speake-rs"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+ctrlc = "3"
+qwen3-tts = { git = "file:///home/notes/Projects/qwen3-tts-rs", rev = "b49777d9769d2307e213469db68855ce000414d6", features = ["hub"] }
+candle-core = "0.9"
+shlex = "1"
+tempfile = "3"

@@ -1,0 +1,7 @@
+# Add this to ~/.config/speech-dispatcher/speechd.conf
+# (create file if it does not exist)
+# This only enables module routing. Custom cloned profiles are user-managed locally.
+
+AddModule "speake-rs" "sd_generic" "speake-rs-generic.conf" "/tmp/speake-rs-module.log"
+DefaultModule speake-rs
+LanguageDefaultModule "en" "speake-rs"

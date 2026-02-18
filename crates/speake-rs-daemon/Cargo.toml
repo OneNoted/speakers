@@ -1,0 +1,24 @@
+[package]
+name = "speake-rs-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "speake-rs-daemon"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+ctrlc.workspace = true
+qwen3-tts.workspace = true
+candle-core.workspace = true
+speake-rs-core = { path = "../speake-rs-core" }
+
+[features]
+default = []
+cuda = ["speake-rs-core/cuda", "qwen3-tts/cuda"]
+flash-attn = ["speake-rs-core/flash-attn", "qwen3-tts/flash-attn"]

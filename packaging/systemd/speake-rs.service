@@ -1,0 +1,12 @@
+[Unit]
+Description=speake-rs Qwen3 TTS Daemon
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/speake-rs-daemon
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
