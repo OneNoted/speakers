@@ -30,14 +30,14 @@ pub struct DaemonOptions {
 }
 
 #[derive(Debug)]
-struct SynthesisFailure {
-    code: &'static str,
-    message: String,
-    details: Vec<String>,
+pub(crate) struct SynthesisFailure {
+    pub(crate) code: &'static str,
+    pub(crate) message: String,
+    pub(crate) details: Vec<String>,
 }
 
 impl SynthesisFailure {
-    fn new(code: &'static str, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
@@ -45,7 +45,7 @@ impl SynthesisFailure {
         }
     }
 
-    fn from_anyhow(code: &'static str, err: anyhow::Error) -> Self {
+    pub(crate) fn from_anyhow(code: &'static str, err: anyhow::Error) -> Self {
         let message = err.to_string();
         let details = collect_error_chain(&err);
         Self {
@@ -158,7 +158,7 @@ pub fn run(options: DaemonOptions) -> Result<()> {
     Ok(())
 }
 
-fn choose_device() -> (Device, Option<String>) {
+pub(crate) fn choose_device() -> (Device, Option<String>) {
     match auto_device() {
         Ok(device) => {
             if matches!(device, Device::Cpu) {
@@ -265,16 +265,15 @@ fn send_response(stream: &mut UnixStream, response: &DaemonResponse) -> Result<(
     Ok(())
 }
 
-fn synthesize_request(
+pub(crate) fn synthesize_to_buffer(
     model: &Qwen3TTS,
     device: &Device,
     model_variant: ModelVariant,
     config: &Config,
     text: &str,
     language: &str,
-    output: &PathBuf,
     voice: &VoiceSelection,
-) -> std::result::Result<SynthesisData, SynthesisFailure> {
+) -> std::result::Result<qwen3_tts::AudioBuffer, SynthesisFailure> {
     let text = text.trim();
     if text.is_empty() {
         return Err(SynthesisFailure::new("bad_request", "text is empty"));
@@ -409,6 +408,25 @@ fn synthesize_request(
         }
     };
 
+    if is_icl {
+        eprintln!("warning: ICL profile synthesis was executed (experimental path)");
+    }
+
+    Ok(audio)
+}
+
+fn synthesize_request(
+    model: &Qwen3TTS,
+    device: &Device,
+    model_variant: ModelVariant,
+    config: &Config,
+    text: &str,
+    language: &str,
+    output: &PathBuf,
+    voice: &VoiceSelection,
+) -> std::result::Result<SynthesisData, SynthesisFailure> {
+    let audio = synthesize_to_buffer(model, device, model_variant, config, text, language, voice)?;
+
     paths::ensure_parent(output)
         .map_err(|err| SynthesisFailure::from_anyhow("synthesis_failed", err))?;
     audio.save(output).map_err(|err| {
@@ -418,19 +436,12 @@ fn synthesize_request(
         )
     })?;
 
-    if is_icl {
-        eprintln!(
-            "warning: ICL profile synthesis was executed (experimental path): {}",
-            output.display()
-        );
-    }
-
     Ok(SynthesisData {
         output: output.clone(),
     })
 }
 
-fn profile_synthesis_options(is_icl: bool) -> SynthesisOptions {
+pub(crate) fn profile_synthesis_options(is_icl: bool) -> SynthesisOptions {
     let mut options = SynthesisOptions {
         // Keep cloned voice output stable and reduce prompt-copy leakage.
         temperature: 0.35,
@@ -447,7 +458,7 @@ fn profile_synthesis_options(is_icl: bool) -> SynthesisOptions {
     options
 }
 
-fn enforce_global_voice_policy(config: &Config) -> Result<()> {
+pub(crate) fn enforce_global_voice_policy(config: &Config) -> Result<()> {
     if config.speech_dispatcher.allow_icl {
         return Ok(());
     }
@@ -492,6 +503,6 @@ fn enforce_global_voice_policy(config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn collect_error_chain(err: &anyhow::Error) -> Vec<String> {
+pub(crate) fn collect_error_chain(err: &anyhow::Error) -> Vec<String> {
     err.chain().skip(1).map(|cause| cause.to_string()).collect()
 }
