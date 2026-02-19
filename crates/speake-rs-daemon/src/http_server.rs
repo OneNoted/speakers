@@ -188,7 +188,12 @@ pub fn run(options: HttpOptions) -> Result<()> {
         .route("/health", get(health_handler))
         .route("/voices", get(voices_handler))
         .route("/tts", post(tts_handler))
-        .layer(CorsLayer::permissive())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(tower_http::cors::Any)
+                .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
+                .allow_headers([axum::http::header::CONTENT_TYPE]),
+        )
         .with_state(state);
 
     let rt = tokio::runtime::Runtime::new().context("failed to create tokio runtime")?;
