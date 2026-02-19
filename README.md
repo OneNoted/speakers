@@ -5,6 +5,7 @@ Local Linux TTS daemon plus Speech Dispatcher bridge built on Qwen3-TTS.
 ## What it provides
 
 - Persistent local daemon (`speake-rs-daemon`) over a Unix socket
+- Optional HTTP server mode (`--features http`) for network-accessible TTS
 - CLI client (`speake-rs`) for direct synthesis and Speech Dispatcher bridge mode
 - `sd_generic` module integration so global `spd-say` can route through `speake-rs`
 - Optional user-managed voice cloning profiles
@@ -40,6 +41,12 @@ CUDA build:
 cargo build --workspace --features cuda
 ```
 
+Build with HTTP server support:
+
+```bash
+cargo build -p speake-rs-daemon --features http
+```
+
 ## Install
 
 ```bash
@@ -52,6 +59,12 @@ CUDA install:
 ```bash
 cargo install --path crates/speake-rs-cli --force --features cuda
 cargo install --path crates/speake-rs-daemon --force --features cuda
+```
+
+Install with HTTP + CUDA:
+
+```bash
+cargo install --path crates/speake-rs-daemon --force --features http,cuda
 ```
 
 ## Quickstart
@@ -72,6 +85,61 @@ speake-rs speak "hello from speake-rs" --voice ryan
 Configure global `spd-say` routing via Speech Dispatcher:
 
 - `docs/setup-speech-dispatcher.md`
+
+## HTTP Server Mode
+
+When built with `--features http`, the daemon can serve TTS over HTTP instead of a Unix socket. This is useful for running in Docker containers or exposing TTS as a network service.
+
+```bash
+speake-rs-daemon --http 0.0.0.0:9000
+```
+
+### Endpoints
+
+- `GET /health` — returns `{"status":"ok","model":"...","uptime_secs":N}`
+- `GET /voices` — returns list of available voice IDs
+- `POST /tts` — synthesize speech, returns raw audio bytes
+
+### POST /tts
+
+Request body (JSON):
+
+```json
+{
+  "text": "Hello world",
+  "voice": "ryan",
+  "language": "en",
+  "speaking_rate": 1.0,
+  "format": "ogg"
+}
+```
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `text` | (required) | Text to synthesize |
+| `voice` | `"ryan"` | Preset speaker name or `"profile:<name>"` for a cloned voice |
+| `language` | `"en"` | Language code (`en`, `zh`, `ja`, `ko`, `de`, `fr`, `ru`, `pt`, `es`, `it`) |
+| `speaking_rate` | `1.0` | Playback speed (0.0–5.0, applied via ffmpeg atempo) |
+| `format` | `"ogg"` | Output format: `"ogg"` or `"mp3"` |
+
+Response: raw audio bytes with appropriate `Content-Type` header.
+
+Requires `ffmpeg` on the system PATH for audio format conversion.
+
+### Docker
+
+```bash
+docker build -t speake-rs .
+docker run --gpus all -p 9000:9000 speake-rs
+```
+
+```bash
+curl http://localhost:9000/health
+curl -X POST http://localhost:9000/tts \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"hello world","voice":"ryan","format":"ogg"}' \
+  --output test.ogg
+```
 
 ## Documentation
 

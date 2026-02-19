@@ -18,7 +18,15 @@ qwen3-tts.workspace = true
 candle-core.workspace = true
 speake-rs-core = { path = "../speake-rs-core" }
 
+# Optional HTTP mode dependencies
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+hound = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+
 [features]
 default = []
+http = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:hound", "dep:serde"]
 cuda = ["speake-rs-core/cuda", "qwen3-tts/cuda"]
 flash-attn = ["speake-rs-core/flash-attn", "qwen3-tts/flash-attn"]

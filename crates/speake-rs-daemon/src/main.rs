@@ -1,5 +1,8 @@
 mod server;
 
+#[cfg(feature = "http")]
+mod http_server;
+
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -17,8 +20,13 @@ struct Args {
     model: Option<String>,
 
     /// Override daemon socket path
-    #[arg(long)]
+    #[arg(long, conflicts_with = "http")]
     socket: Option<PathBuf>,
+
+    /// Run as HTTP server on the given address (e.g. 0.0.0.0:9000)
+    #[cfg(feature = "http")]
+    #[arg(long)]
+    http: Option<std::net::SocketAddr>,
 }
 
 fn main() -> Result<()> {
@@ -27,6 +35,11 @@ fn main() -> Result<()> {
         Some(value) => Some(value.parse::<ModelVariant>()?),
         None => None,
     };
+
+    #[cfg(feature = "http")]
+    if let Some(listen) = args.http {
+        return http_server::run(http_server::HttpOptions { model, listen });
+    }
 
     server::run(server::DaemonOptions {
         model,
